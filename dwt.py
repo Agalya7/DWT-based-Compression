@@ -16,7 +16,17 @@ import scipy.misc
 import pywt
 import pywt.data
 
-img_name = "img02"
+def LtoRShift(block):
+    return np.transpose(block)
+
+def RtoLShift(block):
+    for i in range(len(block), 0, -1):
+        for j in range(i):
+            #block[i][j] = block[len(block)-i][len(block)-j]
+            print (i, j, len(block)-i, len(block)-j)
+    return block
+
+img_name = "img04"
 org_img = cv2.imread(img_name + ".jpg", cv2.IMREAD_COLOR)
 img = np.float32(cv2.imread(img_name + ".jpg", cv2.IMREAD_COLOR))/255
 
@@ -72,9 +82,25 @@ newcr = zeros([len(LL), len(LL[0])])
 for i in range(len(cr)):
     for j in range(len(cr[0]), 2):
         newcr[i][j] = cr[i][j]
-print (len(LL), len(HH), len(newcb), len(newcr), len(org_img))
-print (len(LL[0]), len(HH[0]), len(newcb[0]), len(newcr[0]), len(org_img[0]))
+#print (len(LL), len(HH), len(newcb), len(newcr), len(org_img))
+#print (len(LL[0]), len(HH[0]), len(newcb[0]), len(newcr[0]), len(org_img[0]))
 
 coeffs = (LL, (newcb, newcr, HH))
 img = pywt.idwt2(coeffs, 'haar')
+incr = 30
+factor = min(img.shape) % incr
+factor = min(img.shape) - factor
+img = img[:factor, :factor]
 scipy.misc.imsave('textured.png', img)
+print (img.shape)
+block = []
+for i in range(0, factor, incr):
+    for j in range(0, factor, incr):
+        block.append(img[i:i+incr, j:j+incr])
+print (len(block), len(block[0]), len(block[0][0]))
+for i in range(0, len(block), 2):   #odd
+    #print (i)
+    block[i] = LtoRShift(block[i])
+#for i in range(1, len(block), 2):   #even
+    #print(i)
+block[1] = RtoLShift(block[1])
