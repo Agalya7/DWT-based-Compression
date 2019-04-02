@@ -20,10 +20,10 @@ def LtoRShift(block):
     return np.transpose(block)
 
 def RtoLShift(block):
-    for i in range(len(block), 0, -1):
-        for j in range(i):
-            #block[i][j] = block[len(block)-i][len(block)-j]
-            print (i, j, len(block)-i, len(block)-j)
+    for i in range(len(block)-1, -1, -1):
+        for j in range(i+1):
+            block[i][j] = block[len(block)-i-1][len(block)-j-1]
+            #print (i, j, len(block)-i-1, len(block)-j-1)
     return block
 
 img_name = "img04"
@@ -101,6 +101,20 @@ print (len(block), len(block[0]), len(block[0][0]))
 for i in range(0, len(block), 2):   #odd
     #print (i)
     block[i] = LtoRShift(block[i])
-#for i in range(1, len(block), 2):   #even
+for i in range(1, len(block), 2):   #even
     #print(i)
-block[1] = RtoLShift(block[1])
+    block[i] = RtoLShift(block[i])
+new_image = np.reshape(block, img.shape)
+scipy.misc.imsave('tringular.png', new_image)
+block = []
+for i in range(0, factor, incr):
+    for j in range(0, factor, incr):
+        block.append(new_image[i:i+incr, j:j+incr])
+for i in range(0, len(block), 2):   #odd
+    #print (i)
+    block[i] = RtoLShift(block[i])
+for i in range(1, len(block), 2):   #even
+    #print(i)
+    block[i] = LtoRShift(block[i])
+new_image = np.reshape(block, img.shape)
+scipy.misc.imsave('rev-tringular.png', new_image)
