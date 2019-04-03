@@ -20,11 +20,16 @@ def LtoRShift(block):
     return np.transpose(block)
 
 def RtoLShift(block):
+    new = np.zeros(block.shape)
     for i in range(len(block)-1, -1, -1):
-        for j in range(i+1):
-            block[i][j] = block[len(block)-i-1][len(block)-j-1]
-            #print (i, j, len(block)-i-1, len(block)-j-1)
-    return block
+        for j in range(len(block)-1-i):
+            new[i][j] = block[len(block)-1-j][len(block)-1-i]
+    for i in range(len(block)-1, -1, -1):
+        new[i][len(block)-1-i] = block[i][len(block)-1-i]
+    for i in range(len(block)-1, -1, -1):
+        for j in range(len(block)-i, len(block)):
+            new[i][j] = block[len(block)-1-j][len(block)-1-i]
+    return new
 
 img_name = "img04"
 org_img = cv2.imread(img_name + ".jpg", cv2.IMREAD_COLOR)
@@ -33,10 +38,6 @@ img = np.float32(cv2.imread(img_name + ".jpg", cv2.IMREAD_COLOR))/255
 ycbcr = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
 y, cb, cr = cv2.split(ycbcr)
 ycbcr_scaled = np.uint8(255.*(ycbcr - ycbcr.min())/(ycbcr.max() - ycbcr.min()))
-#cv2.imshow('display', org_img)
-#cv2.imshow('display', ycbcr_scaled)
-#cv2.waitKey()
-cv2.destroyAllWindows()
 
 titles = ['img1', ' img2']
 cfs = pywt.dwt(y, 'haar')
@@ -66,14 +67,7 @@ for i, a in enumerate([LL, LH, HL, HH]):
     ax.set_yticks([])
 fig.tight_layout()
 plt.show()
-#newLL = zeros([len(org_img), len(org_img[0])])
-#for i in range(len(LL)):
-#    for j in range(len(LL[0])):
-#        newLL[i][j*2] = LL[i][j]
-#newHH = zeros([len(org_img), len(org_img[0])])
-#for i in range(len(HH)):
-#    for j in range(len(HH[0]), 2):
-#        newHH[i][j*2] = HH[i][j]
+
 newcb = zeros([len(LL), len(LL[0])])
 for i in range(len(cb)):
     for j in range(len(cb[0]), 2):
@@ -82,8 +76,6 @@ newcr = zeros([len(LL), len(LL[0])])
 for i in range(len(cr)):
     for j in range(len(cr[0]), 2):
         newcr[i][j] = cr[i][j]
-#print (len(LL), len(HH), len(newcb), len(newcr), len(org_img))
-#print (len(LL[0]), len(HH[0]), len(newcb[0]), len(newcr[0]), len(org_img[0]))
 
 coeffs = (LL, (newcb, newcr, HH))
 img = pywt.idwt2(coeffs, 'haar')
@@ -98,23 +90,25 @@ for i in range(0, factor, incr):
     for j in range(0, factor, incr):
         block.append(img[i:i+incr, j:j+incr])
 print (len(block), len(block[0]), len(block[0][0]))
-for i in range(0, len(block), 2):   #odd
-    #print (i)
+for i in range(0, len(block), 2):   #even
     block[i] = LtoRShift(block[i])
-for i in range(1, len(block), 2):   #even
-    #print(i)
+for i in range(1, len(block), 2):   #odd
     block[i] = RtoLShift(block[i])
-new_image = np.reshape(block, img.shape)
+block_incr = len(img)//incr
+new_image = np.block([block[0:block_incr]])
+for i in range(1, block_incr):
+    b = np.block([block[i*block_incr:(i+1)*block_incr]])
+    print (i, new_image.shape, b.shape)
+    new_image = np.vstack([new_image, b])
+print (new_image.shape)
 scipy.misc.imsave('tringular.png', new_image)
-block = []
-for i in range(0, factor, incr):
-    for j in range(0, factor, incr):
-        block.append(new_image[i:i+incr, j:j+incr])
-for i in range(0, len(block), 2):   #odd
-    #print (i)
-    block[i] = RtoLShift(block[i])
-for i in range(1, len(block), 2):   #even
-    #print(i)
+for i in range(0, len(block), 2):   #even
     block[i] = LtoRShift(block[i])
-new_image = np.reshape(block, img.shape)
+for i in range(1, len(block), 2):   #odd
+    block[i] = RtoLShift(block[i])
+new_image = np.block([block[0:block_incr]])
+for i in range(1, block_incr):
+    b = np.block([block[i*block_incr:(i+1)*block_incr]])
+    print (i, new_image.shape, b.shape)
+    new_image = np.vstack([new_image, b])
 scipy.misc.imsave('rev-tringular.png', new_image)
